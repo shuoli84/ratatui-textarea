@@ -2040,6 +2040,39 @@ impl<'a> TextArea<'a> {
         self.cursor
     }
 
+    /// Get the visible cursor position relative to the viewport.
+    ///
+    /// This returns the cursor position as it appears on screen, accounting for both vertical
+    /// and horizontal scrolling. Returns `(visible_row, visible_col)`.
+    ///
+    /// Note: This currently calculates based on character indices, not Unicode display width.
+    /// For mixed-width text (e.g., Chinese characters), the actual screen position may differ.
+    /// ```
+    /// use ratatui_textarea::TextArea;
+    /// use ratatui_textarea::CursorMove;
+    ///
+    /// let mut textarea = TextArea::from(["line 1", "line 2", "line 3"]);
+    ///
+    /// // Move cursor down 2 lines
+    /// textarea.move_cursor(CursorMove::Down);
+    /// textarea.move_cursor(CursorMove::Down);
+    ///
+    /// // After render, viewport scroll position would be set
+    /// // The visible cursor is calculated relative to the viewport
+    /// let (row, col) = textarea.cursor();
+    /// let (visible_row, visible_col) = textarea.visible_cursor();
+    /// assert_eq!(row, 2);  // absolute position
+    /// // visible_row depends on viewport scroll position after render
+    /// ```
+    pub fn visible_cursor(&self) -> (usize, usize) {
+        let (row, col) = self.cursor;
+        let (top_row, top_col) = self.viewport.scroll_top();
+        (
+            row.saturating_sub(top_row as usize),
+            col.saturating_sub(top_col as usize),
+        )
+    }
+
     /// Get the current selection range as a pair of the start position and the end position. The range is bounded
     /// inclusively below and exclusively above. The positions are 0-base character-wise (row, col) values.
     /// The first element of the pair is always smaller than the second one even when it is ahead of the cursor.
