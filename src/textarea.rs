@@ -2040,13 +2040,26 @@ impl<'a> TextArea<'a> {
         self.cursor
     }
 
+    /// Calculate the visual column width for a given row and character index.
+    /// This considers Unicode character widths (e.g., CJK characters occupy 2 cells).
+    pub(crate) fn visual_column_width(&self, row: usize, col: usize) -> usize {
+        if row >= self.lines.len() {
+            return col;
+        }
+        let line = &self.lines[row];
+        line.char_indices()
+            .take(col)
+            .map(|(_, c)| c.width().unwrap_or(1))
+            .sum::<usize>()
+    }
+
     /// Get the visible cursor position relative to the viewport.
     ///
     /// This returns the cursor position as it appears on screen, accounting for both vertical
     /// and horizontal scrolling. Returns `(visible_row, visible_col)`.
     ///
-    /// Note: This currently calculates based on character indices, not Unicode display width.
-    /// For mixed-width text (e.g., Chinese characters), the actual screen position may differ.
+    /// Note: The column position considers Unicode display width (e.g., CJK characters and emoji
+    /// occupy 2 cells, while ASCII characters occupy 1 cell).
     /// ```
     /// use ratatui_textarea::TextArea;
     /// use ratatui_textarea::CursorMove;
@@ -2067,9 +2080,13 @@ impl<'a> TextArea<'a> {
     pub fn visible_cursor(&self) -> (usize, usize) {
         let (row, col) = self.cursor;
         let (top_row, top_col) = self.viewport.scroll_top();
+
+        // Calculate the visual column position considering Unicode character widths
+        let visual_col = self.visual_column_width(row, col);
+
         (
             row.saturating_sub(top_row as usize),
-            col.saturating_sub(top_col as usize),
+            visual_col.saturating_sub(top_col as usize),
         )
     }
 

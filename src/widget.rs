@@ -111,7 +111,12 @@ impl<'a> TextArea<'a> {
     }
 
     fn scroll_top_col(&self, prev_top: u16, width: u16) -> u16 {
-        let mut cursor = self.cursor().1 as u16;
+        let cursor_row = self.cursor().0;
+        let cursor_col = self.cursor().1;
+
+        // Calculate visual column position considering Unicode character widths
+        let mut cursor = self.visual_column_width(cursor_row, cursor_col) as u16;
+
         // Adjust the cursor position due to the width of line number.
         if self.line_number_style().is_some() {
             let lnum = num_digits(self.lines().len()) as u16 + 2; // `+ 2` for margins
